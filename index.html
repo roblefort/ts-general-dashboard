@@ -352,7 +352,7 @@
     <div class="chips-section">
       <p class="section-label">Filter by service</p>
       <div class="chips" id="chips">
-        <button class="chip" data-key="main_buy" data-group="transaction">
+        <button class="chip active" data-key="main_buy" data-group="transaction" aria-pressed="true">
           <span class="check" aria-hidden="true"></span>
           <span>Acquisitions</span>
         </button>
@@ -389,7 +389,7 @@
         <span class="chevron" id="filterChevron">▾</span>
       </button>
       <div class="filter-actions">
-        <button class="btn-reset" type="button">Remove filters</button>
+        <button class="btn-reset" type="button" id="removeFiltersBtn">Remove filters</button>
         <button class="btn-search" type="button">Search</button>
       </div>
     </div>
@@ -486,8 +486,26 @@
     service_other: 'Other'
   };
 
+  var DEFAULT_KEY = 'main_buy';
+
   function activeKeys() {
     return Array.from(chipsContainer.querySelectorAll('.chip.active')).map(function (c) { return c.dataset.key; });
+  }
+
+  function nonDefaultActiveCount() {
+    var keys = activeKeys();
+    if (keys.length === 0) return 0;
+    if (keys.length === 1 && keys[0] === DEFAULT_KEY) return 0;
+    return keys.length;
+  }
+
+  function resetToDefault() {
+    chipsContainer.querySelectorAll('.chip').forEach(function (c) {
+      var shouldBeActive = c.dataset.key === DEFAULT_KEY;
+      c.classList.toggle('active', shouldBeActive);
+      c.setAttribute('aria-pressed', shouldBeActive ? 'true' : 'false');
+    });
+    updateContext();
   }
 
   function updateContext() {
@@ -500,7 +518,7 @@
     }
     var labels = keys.map(function (k) { return chipLabels[k]; }).join(' · ');
     ctxScope.textContent = labels;
-    clearBtn.style.display = '';
+    clearBtn.style.display = nonDefaultActiveCount() > 0 ? '' : 'none';
     paramPreview.textContent = keys.map(function (k) { return 'services[]=' + k; }).join('&');
   }
 
@@ -513,11 +531,14 @@
   });
 
   clearBtn.addEventListener('click', function () {
-    chipsContainer.querySelectorAll('.chip.active').forEach(function (c) {
-      c.classList.remove('active');
-      c.setAttribute('aria-pressed', 'false');
-    });
-    updateContext();
+    resetToDefault();
+  });
+
+  // Remove filters: chips back to default + clear filter panel inputs
+  document.getElementById('removeFiltersBtn').addEventListener('click', function () {
+    resetToDefault();
+    filterPanel.querySelectorAll('input[type="text"]').forEach(function (i) { i.value = ''; });
+    filterPanel.querySelectorAll('select').forEach(function (s) { s.selectedIndex = 0; });
   });
 
   // Tabs
@@ -530,9 +551,10 @@
     });
   });
 
-  // Initialize all chips as toggle buttons
+  // Initialize all chips as toggle buttons (respect pre-set active state)
   chipsContainer.querySelectorAll('.chip').forEach(function (c) {
-    c.setAttribute('aria-pressed', 'false');
+    var isActive = c.classList.contains('active');
+    c.setAttribute('aria-pressed', isActive ? 'true' : 'false');
     c.setAttribute('role', 'button');
   });
 
