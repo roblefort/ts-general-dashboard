@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Redesign — Prototype v2 (multi-select chips)</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    color: #2d3436;
+    background: #f5f6f8;
+    line-height: 1.5;
+    padding: 24px;
+  }
+
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  .card {
+    background: #ffffff;
+    border: 1px solid #e6e8eb;
+    border-radius: 10px;
+    padding: 24px 28px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  h1.page-title {
+    font-size: 26px;
+    font-weight: 600;
+    color: #088576;
+    margin: 0 0 24px;
+    text-align: center;
+  }
+
+  /* ---- Service chip group ---- */
+  .chips-section { margin-bottom: 20px; }
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #8a8f99;
+    margin: 0 0 10px;
+  }
+  .chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px 8px 14px;
+    border-radius: 999px;
+    border: 1px solid #d4d7dc;
+    background: #ffffff;
+    cursor: pointer;
+    font-size: 13px;
+    color: #5a6068;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .chip:hover {
+    border-color: #088576;
+    color: #088576;
+  }
+  .chip.active {
+    background: #088576;
+    color: #ffffff;
+    border-color: #088576;
+    padding-left: 10px;
+  }
+  .chip .check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid #d4d7dc;
+    background: #ffffff;
+    font-size: 10px;
+    color: transparent;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .chip.active .check {
+    border-color: #ffffff;
+    background: #ffffff;
+    color: #088576;
+  }
+  .chip .check::before {
+    content: "✓";
+    font-weight: 700;
+    line-height: 1;
+  }
+  .chip-group-divider {
+    width: 1px;
+    height: 24px;
+    background: #d4d7dc;
+    margin: 0 4px;
+  }
+  .chip-clear {
+    margin-left: auto;
+    padding: 6px 12px;
+    background: transparent;
+    border: none;
+    color: #8a8f99;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  .chip-clear:hover { color: #088576; }
+
+  /* ---- Filter bar ---- */
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 20px 0 14px;
+  }
+  .filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 16px;
+    border: 1px solid #d4d7dc;
+    border-radius: 8px;
+    background: #ffffff;
+    cursor: pointer;
+    font-size: 13px;
+    color: #2d3436;
+  }
+  .filter-toggle:hover { background: #f5f6f8; border-color: #088576; }
+  .filter-count {
+    background: #e0f0ed;
+    color: #088576;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .chevron { display: inline-block; transition: transform 0.2s; font-size: 10px; color: #8a8f99; }
+  .chevron.up { transform: rotate(180deg); }
+
+  .filter-actions { display: flex; gap: 8px; }
+  .btn-search {
+    padding: 9px 22px;
+    background: #088576;
+    color: #ffffff;
+    border: 1px solid #088576;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .btn-search:hover { background: #066c61; }
+  .btn-reset {
+    padding: 9px 16px;
+    background: #ffffff;
+    color: #d8693d;
+    border: 1px solid #d8693d;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .btn-reset:hover { background: #fef3ed; }
+
+  /* ---- Filter panel ---- */
+  .filter-panel {
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.25s ease, margin 0.25s ease;
+    max-height: 0;
+    opacity: 0;
+    margin-bottom: 0;
+  }
+  .filter-panel.expanded {
+    max-height: 600px;
+    opacity: 1;
+    margin-bottom: 20px;
+  }
+  .filter-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px 18px;
+    padding: 20px;
+    background: #f8f9fa;
+    border: 1px solid #e6e8eb;
+    border-radius: 8px;
+  }
+  .filter-field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: #5a6068;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .filter-field input,
+  .filter-field select {
+    width: 100%;
+    padding: 8px 11px;
+    border: 1px solid #d4d7dc;
+    border-radius: 6px;
+    background: #ffffff;
+    font-size: 13px;
+    color: #2d3436;
+    font-family: inherit;
+  }
+  .filter-field input:focus,
+  .filter-field select:focus {
+    outline: none;
+    border-color: #088576;
+    box-shadow: 0 0 0 3px rgba(8, 133, 118, 0.1);
+  }
+
+  /* ---- Context line ---- */
+  .context-line {
+    font-size: 13px;
+    color: #5a6068;
+    margin: 8px 0 16px;
+  }
+  .context-pill {
+    display: inline-block;
+    padding: 3px 11px;
+    background: #f0f2f5;
+    border-radius: 999px;
+    font-size: 12px;
+    color: #2d3436;
+    margin: 0 4px;
+    font-weight: 500;
+  }
+  .context-separator { color: #c4c8ce; margin: 0 4px; }
+
+  /* ---- KPI cards ---- */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin: 16px 0 24px;
+  }
+  .kpi {
+    background: #f8f9fa;
+    border: 1px solid #e6e8eb;
+    border-radius: 8px;
+    padding: 16px 20px;
+  }
+  .kpi-label {
+    font-size: 12px;
+    color: #5a6068;
+    margin: 0 0 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+  }
+  .kpi-value {
+    font-size: 26px;
+    font-weight: 600;
+    color: #088576;
+    margin: 0;
+    line-height: 1.2;
+  }
+  .kpi-sub {
+    font-size: 12px;
+    color: #8a8f99;
+    margin: 6px 0 0;
+  }
+
+  /* ---- Tabs ---- */
+  .tabs-row {
+    display: flex;
+    border-bottom: 1px solid #e6e8eb;
+    margin: 0 0 16px;
+  }
+  .tab-btn {
+    padding: 12px 22px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-size: 14px;
+    color: #5a6068;
+    margin-bottom: -1px;
+    font-weight: 500;
+  }
+  .tab-btn:hover { color: #088576; }
+  .tab-btn.active {
+    color: #088576;
+    border-bottom-color: #088576;
+    font-weight: 600;
+  }
+
+  .tab-content {
+    background: #f8f9fa;
+    border: 1px dashed #d4d7dc;
+    border-radius: 8px;
+    padding: 48px 16px;
+    text-align: center;
+    color: #8a8f99;
+    font-size: 13px;
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .tab-content strong { color: #2d3436; font-size: 14px; }
+  .tab-content code {
+    font-family: "SF Mono", Monaco, Consolas, monospace;
+    font-size: 11px;
+    background: #ffffff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid #e6e8eb;
+  }
+
+  .proto-note {
+    margin-top: 24px;
+    padding: 14px 18px;
+    background: #fef9e7;
+    border: 1px solid #f0d97d;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #6b5d1f;
+  }
+  .proto-note strong { color: #463f0f; }
+  .proto-note code {
+    font-family: "SF Mono", Monaco, Consolas, monospace;
+    font-size: 11px;
+    background: #ffffff;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="card">
+
+    <h1 class="page-title">Statistics</h1>
+
+    <!-- Multi-select service chips, grouped visually -->
+    <div class="chips-section">
+      <p class="section-label">Filter by service</p>
+      <div class="chips" id="chips">
+        <button class="chip" data-key="main_buy" data-group="transaction">
+          <span class="check" aria-hidden="true"></span>
+          <span>Acquisitions</span>
+        </button>
+        <button class="chip" data-key="main_rental" data-group="transaction">
+          <span class="check" aria-hidden="true"></span>
+          <span>Leases</span>
+        </button>
+
+        <div class="chip-group-divider" aria-hidden="true"></div>
+
+        <button class="chip" data-key="service_escrow" data-group="service">
+          <span class="check" aria-hidden="true"></span>
+          <span>Escrow</span>
+        </button>
+        <button class="chip" data-key="service_financing" data-group="service">
+          <span class="check" aria-hidden="true"></span>
+          <span>Financing</span>
+        </button>
+        <button class="chip" data-key="service_other" data-group="service">
+          <span class="check" aria-hidden="true"></span>
+          <span>Other</span>
+        </button>
+
+        <button class="chip-clear" type="button" id="clearChips" style="display:none">Clear selection</button>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <button class="filter-toggle" id="filterToggle" aria-expanded="false" aria-controls="filterPanel">
+        <span>⚙</span>
+        <span>Filters</span>
+        <span class="filter-count" id="filterCount">3 active</span>
+        <span class="chevron" id="filterChevron">▾</span>
+      </button>
+      <div class="filter-actions">
+        <button class="btn-reset" type="button">Remove filters</button>
+        <button class="btn-search" type="button">Search</button>
+      </div>
+    </div>
+
+    <!-- Collapsible filter panel -->
+    <div class="filter-panel" id="filterPanel" aria-hidden="true">
+      <div class="filter-grid">
+        <div class="filter-field"><label>Period</label><input type="text" value="01/05/2026 – 31/05/2026"></div>
+        <div class="filter-field"><label>Location</label><input type="text" placeholder="street / zip / city"></div>
+        <div class="filter-field"><label>Country</label><select><option>Choose…</option><option>Mexico</option><option>USA</option></select></div>
+        <div class="filter-field"><label>Development</label><input type="text" placeholder="name / developer / m²"></div>
+        <div class="filter-field"><label>Status</label><select><option>Choose…</option><option>Active</option><option>Closed</option></select></div>
+        <div class="filter-field"><label>Fees</label><select><option>Choose…</option></select></div>
+        <div class="filter-field"><label>Closing date</label><select><option>Choose…</option></select></div>
+        <div class="filter-field"><label>Buyer info</label><input type="text" placeholder="name / email / age"></div>
+        <div class="filter-field"><label>Buyer country</label><select><option>Choose…</option></select></div>
+        <div class="filter-field"><label>Purchase price</label><select><option>Choose…</option></select></div>
+        <div class="filter-field"><label>Buyer / seller name</label><input type="text" placeholder="Name"></div>
+      </div>
+    </div>
+
+    <!-- Context line -->
+    <p class="context-line">
+      Showing:
+      <span class="context-pill" id="ctxScope">All transactions</span>
+      <span class="context-separator">·</span>
+      Period
+      <span class="context-pill">01/05/2026 – 31/05/2026</span>
+    </p>
+
+    <!-- KPI cards -->
+    <div class="kpi-grid">
+      <div class="kpi">
+        <p class="kpi-label">Total files</p>
+        <p class="kpi-value">1,807</p>
+        <p class="kpi-sub">USD $868,205,564 · MXN $76,417,489</p>
+      </div>
+      <div class="kpi">
+        <p class="kpi-label">Active</p>
+        <p class="kpi-value">1,524</p>
+        <p class="kpi-sub">USD $700,575,184 · MXN $51,833,972</p>
+      </div>
+      <div class="kpi">
+        <p class="kpi-label">Closed</p>
+        <p class="kpi-value">274</p>
+        <p class="kpi-sub">USD $165,486,281 · MXN $24,583,517</p>
+      </div>
+    </div>
+
+    <!-- Two tabs -->
+    <div class="tabs-row" role="tablist">
+      <button class="tab-btn active" data-tab="data">Data</button>
+      <button class="tab-btn" data-tab="charts">Statistics</button>
+    </div>
+
+    <div class="tab-content" id="tabContent">
+      <strong id="tabContentTitle">Data tab</strong>
+      <span>Portfolio table renders here, scoped to the current selection and filters.</span>
+      <span style="font-size:11px;">Param shape sent to controller: <code id="paramPreview">services[]=</code></span>
+    </div>
+
+  </div>
+
+  <div class="proto-note">
+    <strong>How the multi-select maps to the query:</strong>
+    Selected chips are sent as <code>params[:services][]</code> (array). <code>PortfolioServiceOptions.apply_filter</code> needs to be extended from single-value to array: it groups keys by <code>filter_type</code> and applies <code>main_service_in: [...]</code> for transactions and <code>services_id_in: [...]</code> for services. Within a group it's OR; between groups Ransack composes AND, which is the right default.
+  </div>
+</div>
+
+<script>
+(function () {
+  // Filter panel toggle
+  var filterToggle = document.getElementById('filterToggle');
+  var filterPanel = document.getElementById('filterPanel');
+  var chevron = document.getElementById('filterChevron');
+  filterToggle.addEventListener('click', function () {
+    var expanded = filterPanel.classList.toggle('expanded');
+    filterToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    filterPanel.setAttribute('aria-hidden', expanded ? 'false' : 'true');
+    chevron.classList.toggle('up', expanded);
+  });
+
+  // Multi-select chips
+  var chipsContainer = document.getElementById('chips');
+  var clearBtn = document.getElementById('clearChips');
+  var ctxScope = document.getElementById('ctxScope');
+  var paramPreview = document.getElementById('paramPreview');
+
+  var chipLabels = {
+    main_buy: 'Acquisitions',
+    main_rental: 'Leases',
+    service_escrow: 'Escrow',
+    service_financing: 'Financing',
+    service_other: 'Other'
+  };
+
+  function activeKeys() {
+    return Array.from(chipsContainer.querySelectorAll('.chip.active')).map(function (c) { return c.dataset.key; });
+  }
+
+  function updateContext() {
+    var keys = activeKeys();
+    if (keys.length === 0) {
+      ctxScope.textContent = 'All transactions';
+      clearBtn.style.display = 'none';
+      paramPreview.textContent = 'services[]=  (no filter)';
+      return;
+    }
+    var labels = keys.map(function (k) { return chipLabels[k]; }).join(' · ');
+    ctxScope.textContent = labels;
+    clearBtn.style.display = '';
+    paramPreview.textContent = keys.map(function (k) { return 'services[]=' + k; }).join('&');
+  }
+
+  chipsContainer.addEventListener('click', function (e) {
+    var chip = e.target.closest('.chip');
+    if (!chip) return;
+    chip.classList.toggle('active');
+    chip.setAttribute('aria-pressed', chip.classList.contains('active') ? 'true' : 'false');
+    updateContext();
+  });
+
+  clearBtn.addEventListener('click', function () {
+    chipsContainer.querySelectorAll('.chip.active').forEach(function (c) {
+      c.classList.remove('active');
+      c.setAttribute('aria-pressed', 'false');
+    });
+    updateContext();
+  });
+
+  // Tabs
+  var tabContentTitle = document.getElementById('tabContentTitle');
+  document.querySelectorAll('.tabs-row .tab-btn').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('.tabs-row .tab-btn').forEach(function (x) { x.classList.remove('active'); });
+      b.classList.add('active');
+      tabContentTitle.textContent = b.dataset.tab === 'data' ? 'Data tab' : 'Statistics tab';
+    });
+  });
+
+  // Initialize all chips as toggle buttons
+  chipsContainer.querySelectorAll('.chip').forEach(function (c) {
+    c.setAttribute('aria-pressed', 'false');
+    c.setAttribute('role', 'button');
+  });
+
+  updateContext();
+})();
+</script>
+
+</body>
+</html>
